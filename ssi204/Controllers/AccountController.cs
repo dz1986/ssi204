@@ -1,23 +1,31 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
 using Microsoft.Owin.Security;
 
-namespace ssi204.Controllers
+namespace SfBTokenSvcPrototype.Controllers
 {
     public class AccountController : Controller
     {
-        public void SignIn()
+        public ActionResult SignIn()
         {
-            // Send an OpenID Connect sign-in request.
-            if (!Request.IsAuthenticated)
+            try
             {
-                HttpContext.GetOwinContext().Authentication.Challenge(new AuthenticationProperties { RedirectUri = "/" },
-                    OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                // Send an OpenID Connect sign-in request.
+                if (!Request.IsAuthenticated)
+                {
+                    var url = Url.Action("catchcode", "home");
+                    HttpContext.GetOwinContext().Authentication.Challenge(new AuthenticationProperties { RedirectUri = url }, OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                var result = new ContentResult();
+                result.Content = ex.ToString();
+                return result;
             }
         }
 
@@ -32,13 +40,7 @@ namespace ssi204.Controllers
 
         public ActionResult SignOutCallback()
         {
-            if (Request.IsAuthenticated)
-            {
-                // Redirect to home page if the user is authenticated.
-                return RedirectToAction("Index", "Home");
-            }
-
-            return View();
+            return RedirectToAction("Index", "Home");
         }
     }
 }

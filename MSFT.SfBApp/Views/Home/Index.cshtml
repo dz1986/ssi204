@@ -1,0 +1,17 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+    <script src="~/Scripts/jquery-1.10.2.min.js"></script>
+</head>
+<body>
+    <a id="signin" href="@string.Concat(MvcApplication.proxyServer,"/Account/SignIn")">Login</a>
+    <div>@string.Concat(MvcApplication.proxyServer, "/Account/SignIn")</div>
+</body>
+</html>

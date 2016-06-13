@@ -5,7 +5,7 @@ using System.Data.Entity;
 using System.Linq;
 using System.Web;
 
-namespace ssi204.Models
+namespace SfBTokenSvcPrototype.Models
 {
     public class ApplicationDbContext : DbContext
     {

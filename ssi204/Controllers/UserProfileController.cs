@@ -11,9 +11,9 @@ using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
-using ssi204.Models;
+using SfBTokenSvcPrototype.Models;
 
-namespace ssi204.Controllers
+namespace SfBTokenSvcPrototype.Controllers
 {
     [Authorize]
     public class UserProfileController : Controller

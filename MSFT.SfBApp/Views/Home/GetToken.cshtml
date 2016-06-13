@@ -1,0 +1,241 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <script src="~/Scripts/jquery-1.10.2.min.js"></script>
+    <!--<script src="//swx.cdn.skype.com/shared/v/1.2.9/SkypeBootstrap.js"></script>-->
+    <script src="~/Scripts/sdk-0.4.155-fixed.js"></script>
+    <title>GetToken</title>
+</head>
+<body>
+    <div id="server_url">@MvcApplication.proxyServer</div>
+    <a href="/">back</a>
+    <div id="client_state"></div>
+    <a id="conf-uri" style="display:block"></a>
+    <button id="implicitsignin">Sign In</button>
+    <button id="create-meeting">Create Meeting</button>
+    <button id="schedule-meeting">Schedule Meeting</button>
+    <script>
+        var serverUrl = $("#server_url").text();
+        // alert(window.location.hash);
+        function log() {
+            console.log.apply(console, arguments);
+        }
+
+        function initializeSkypeApi() {
+            Skype.initialize({
+                apiKey: 'a42fcebd-5b43-4b89-a065-74450fb91255',
+            }, function (api) {
+                Application = api.application;
+                createApp();
+                log("Client Created");
+            }, function (err) {
+                log('some error occurred: failed' + err);
+            });
+        }
+
+        //initializeSkypeApi();
+        Application = Skype.Web.Model.Application;
+
+        // tell the SDK to log UCWA traffic
+        Skype.Web.Settings.logEvents = true;
+        Skype.Web.Settings.logRequests = true;
+
+        var client = new Application();
+
+        window.app = client;
+
+        // whenever client.state changes, display its value
+        client.signInManager.state.changed(function (state) {
+            $('#client_state').text(state);
+        });
+
+        window.onbeforeunload = function () {
+            client.signInManager.signOut(); // no need to leave abandoned endpoints on UCWA
+        };
+
+        $('#implicitsignin').click(function () {
+            //Salesforce integration
+            var sf_args = {
+                u1: 'xzluo@skype.biz',  // user account in Salesforce organization
+                u1prime: 'ssiprodmay@ssiprodmay.onmicrosoft.com', // corresponding user account in AAD for SfB Online/O365
+                //idToken: 'ezY...', // idTokenvalue of u1prime, returned from Azure AD
+                id_token: 'ezY...',
+                toke_service_url: 'https://localhost:14760/token',  // switch to Azure App Service endpoint after deployment
+                redirectUri: 'https://localhost/query.html'
+            }
+
+            var origins = [
+                'https://webdir.online.lync.com/autodiscover/autodiscoverservice.svc/root'
+            ];
+
+            // from /jLync/src/auth/Implicit.ts
+            function isAuthRequired(rsp) {
+                // the impicit auth implementation needs to handle web ticket related error codes
+                // because it always exchanges the OAuth token for a web ticket to reduce load on the server
+                if (rsp.status == 401)
+                    return true;
+
+                // sometimes the server doesn't send a 401 with the WWW-Authenticate header,
+                // but sends some random errors with the X-MS-Diagnostics header with a certain code:
+                // if this happens, the client can send a GET to /Autodiscover/AutodiscoverService.svc/root/oauth/user
+                // to get a proper 401 response
+                if (rsp.status == 500 || rsp.status == 403) {
+                    var diag = rsp.headers['X-Ms-Diagnostics'] || '';
+                    var code = diag.split(';')[0];
+
+                    // 500 X-MS-Diagnostics: 28032;reason="The web ticket is invalid."
+                    // 500 X-MS-diagnostics: 28033;reason="The web ticket has expired."
+                    // 500 X-MS-Diagnostics: 28072;reason="The ticket presented could not be verified, a new ticket is required."
+                    // 403 X-MS-diagnostics: 28077;reason="Invalid Audience in the web ticket"
+                    // 403 X-Ms-diagnostics: 28055;reason="The OAuth token is invalid.";faultcode="wsse:FailedAuthentication"
+                    return code == 28032 || code == 28033 || code == 28072 || code == 28077 || code == 28055;
+                }
+
+                return false;
+            }
+
+            var req_id = 0;
+
+            function SFAuth(args) {
+                var token;
+
+                return function (req, send) {
+                    var r_id = ++req_id;
+                    var base = this.src();
+
+                    if (token)
+                        req.headers["Authorization"] = token;
+
+                    //log('#', r_id, '->', token);
+
+                    return send(req).then(rsp => {
+                        if (!isAuthRequired(rsp))
+                            return rsp;
+
+                        return send({
+                            type: 'GET',
+                            /* auth code flow */
+                            // url: serverUrl + "/Home/GetAccessTokenForNewResource_v0?id_token=" + args.id_token + "&newResourceUrl=" + base
+
+                            /* on-behalf-of flow */
+                            url: serverUrl + "/Home/GetAccessTokenForNewResource_v1?id_token=" + args.id_token + "&newResourceUrl=" + base
+
+                            /* user assertion flow */
+                            // url: serverUrl + "/Home/GetAccessTokenForNewResource?id_token=" + args.id_token + "&newResourceUrl=" + base
+
+                        }).then(rsp => {
+                            var data = JSON.parse(rsp.responseText);
+                            var t = data.accessToken;
+
+                            if (!t)
+                                throw { code: "TokenServiceFailed", rsp: rsp };
+
+                            token = "Bearer " + t;
+                            req.headers["Authorization"] = token;
+
+                            return send(req);
+                        });
+                    }).finally(function () {
+                        //log('#', r_id, '<-');
+                    });
+                }
+            }
+
+            //function newAuth(sf_args) {
+            //    return function (req, sendRequest) {
+            //        // send Request to ucwa and check response, if response indicates new access token is required, go get a new access token from tokensvc/token
+            //        function successCallBack(rsp) {
+            //            if (isAuthRequired(rsp)) {
+            //                $.ajax({
+            //                    type: "POST",
+            //                    url: serverUrl + "/Home/GetAccessTokenForNewResource",
+            //                    data: { id_token: sf_args.idToken, newResourceUrl: req.url }
+            //                }).done(function (getNewAccessTokenResponse) {
+            //                    // alert(JSON.stringify(getNewAccessTokenResponse));
+            //                    req.headers["Authorization"] = "Bearer " + getNewAccessTokenResponse.accessToken;
+            //                    sendRequest(req)
+            //                        .then(successCallBack);
+            //                }).fail(function () {
+            //                    alert("error");
+            //                });
+            //            }
+            //        };
+
+            //        sendRequest(req).then(successCallBack);
+            //    }
+            //}
+
+            var options = {
+                cors: true,
+                //use_cwt: false,
+                //redirect_uri: '/query.html',  // required for IE browser, but it's optional for all other browsers
+                id: '58d58780-9c05-433e-8286-6546fb036f9a', //random guid '9b0fdb2a252c4aca56847b17d11c5e5a',
+                client_id: 'c474b50c-615b-4b81-876c-64215e577996', //LE-SfBApp client ID
+                //oauth_uri: 'https://login.microsoftonline.com/common/oauth2/authorize?domain_hint=ssiprodfoo.onmicrosoft.com',
+                auth: SFAuth(sf_args),
+                origins: origins
+            };
+
+            client.signInManager.signIn(options).then(function () {
+                log('Signed in as ' + client.personsAndGroupsManager.mePerson.displayName());
+            }).then(null, function (error) {
+                log("Cannot sign in");
+            });
+
+            log("completed");
+            $('#loginbox').hide();
+            $('#signout').show();
+            $('#skypemeeting').show();
+            $('#saveschedulemeeting').show();
+            $('#popupsaveschedulemeeting').show();
+
+        });
+
+        $('#create-meeting').click(function () {
+            var conf = client.conversationsManager.createConversation();
+
+            conf.chatService.start().then(function () {
+                console.log('meeting created', conf.uri());
+            }).catch(function (err) {
+                console.log('couldnt create a meeting', err);
+            });
+        });
+
+        $('#schedule-meeting').click(function () {
+            var conf = client.conversationsManager.createMeeting();
+
+            // can set conf props here, e.g. conf.acccessLevel("Everyone") // see ucwa docs
+
+            conf.onlineMeetingUri.get().then(function (uri) {
+                console.log('meeting scheduled', uri);
+                $('#conf-uri').text(conf.joinUrl()).attr('title', uri);
+            }).catch(function (err) {
+                console.log('couldnt schedule a meeting', err);
+            });
+        });
+
+        $('#conf-uri').dblclick(function () {
+            var uri = $('#conf-uri').attr('title');
+            var conf = client.conversationsManager.getConversationByUri(uri);
+
+            conf.chatService.sendMessage('Hi there!').then(function () {
+                console.log('meeting joined', conf.uri());
+            }).catch(function (err) {
+                console.log('couldnt join the meeting', err);
+            });
+        });
+    </script>
+    <script type="text/javascript">
+        $('#getAccessTokenForNewResource').click(function () {
+
+        });
+    </script>
+</body>
+</html>
+

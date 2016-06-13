@@ -1,7 +1,7 @@
 ﻿using System.Web;
 using System.Web.Optimization;
 
-namespace ssi204
+namespace MSFT.SfBApp
 {
     public class BundleConfig
     {

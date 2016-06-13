@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Owin;
 using Owin;
 
-namespace ssi204
+namespace SfBTokenSvcPrototype
 {
     public partial class Startup
     {

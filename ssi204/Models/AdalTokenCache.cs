@@ -7,7 +7,7 @@ using System.Web;
 using System.Web.Security;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
-namespace ssi204.Models
+namespace SfBTokenSvcPrototype.Models
 {
     public class ADALTokenCache : TokenCache
     {

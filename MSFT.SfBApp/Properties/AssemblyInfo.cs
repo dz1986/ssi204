@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SfBTokenSvcPrototype")]
+[assembly: AssemblyTitle("MSFT.SfBApp")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("SfBTokenSvcPrototype")]
+[assembly: AssemblyProduct("MSFT.SfBApp")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("3e212a69-5056-40c2-82b6-abbab0fbac38")]
+[assembly: Guid("9c775879-bbe2-4034-9e6c-d741e87f7dce")]
 
 // Version information for an assembly consists of the following four values:
 //
