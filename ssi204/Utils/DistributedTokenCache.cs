@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-//using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using StackExchange.Redis;
-using System.Threading.Tasks;
 
 namespace SfBTokenSvcPrototype.Utils
 {

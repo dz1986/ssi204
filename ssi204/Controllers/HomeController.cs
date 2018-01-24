@@ -109,8 +109,6 @@ namespace SfBTokenSvcPrototype.Controllers
             // objectGUID of the user in AAD
             string userObjectID = Startup.LastContext.AuthenticationTicket.Identity.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
 
-            // string userObjectID = "bbd4b145-b12c-4f0a-914a-e86a6f550458";
-
             Uri res = new Uri(newResourceUrl);
             string ucwaResource = res.GetLeftPart(UriPartial.Authority);
 
